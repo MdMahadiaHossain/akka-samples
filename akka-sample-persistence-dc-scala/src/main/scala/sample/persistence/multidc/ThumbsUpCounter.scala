@@ -1,12 +1,11 @@
 package sample.persistence.multidc
 
-import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.sharding.typed.{ReplicatedEntity, ReplicatedEntityProvider, ShardingEnvelope}
-import akka.cluster.sharding.typed.scaladsl.Entity
+import akka.actor.typed.{ActorRef, Behavior}
+import akka.cluster.sharding.typed.{ReplicatedEntityProvider, ShardingEnvelope}
 import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
-import akka.persistence.typed.{ReplicaId, ReplicationId}
 import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, ReplicatedEventSourcing}
+import akka.persistence.typed.{ReplicaId, ReplicationId}
 
 object ThumbsUpCounter {
 
@@ -14,12 +13,16 @@ object ThumbsUpCounter {
   sealed trait Command extends CborSerializer {
     def resourceId: String
   }
+
   final case class GiveThumbsUp(resourceId: String, userId: String, replyTo: ActorRef[Long]) extends Command
+
   final case class GetCount(resourceId: String, replyTo: ActorRef[Long]) extends Command
+
   final case class GetUsers(resourceId: String, replyTo: ActorRef[State]) extends Command
 
   // saved to DB
   sealed trait Event extends CborSerializer
+
   final case class GaveThumbsUp(userId: String) extends Event
 
   // saved to DB
@@ -30,14 +33,7 @@ object ThumbsUpCounter {
   // In this sample one replica per DC
   val Replicas = Set(ReplicaId("eu-west"), ReplicaId("eu-central"))
 
-  val Provider: ReplicatedEntityProvider[Command, ShardingEnvelope[Command]] = ReplicatedEntityProvider[Command, ShardingEnvelope[Command]](
-    "counter", Replicas
-  ) { (entityTypeKey, replicaId) =>
-    ReplicatedEntity(replicaId, Entity(entityTypeKey) { entityContext =>
-      val replicationId = ReplicationId.fromString(entityContext.entityId)
-      ThumbsUpCounter(replicationId)
-    }.withDataCenter(replicaId.id))
-  }
+  val Provider: ReplicatedEntityProvider[Command] = ReplicatedEntityProvider.perDc("counter", Replicas) { replicationId => ThumbsUpCounter(replicationId) }
 
 
   // we use a shared journal as cassandra typically spans DCs rather than a DB per replica

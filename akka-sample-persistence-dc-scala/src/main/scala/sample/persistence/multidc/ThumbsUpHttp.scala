@@ -15,7 +15,7 @@ import scala.util.{Failure, Success}
 
 object ThumbsUpHttp {
 
-  def startServer(httpHost: String, httpPort: Int, selfReplica: ReplicaId, res: ReplicatedSharding[ThumbsUpCounter.Command, ShardingEnvelope[ThumbsUpCounter.Command]])(implicit system: ActorSystem[_]): Unit = {
+  def startServer(httpHost: String, httpPort: Int, selfReplica: ReplicaId, res: ReplicatedSharding[ThumbsUpCounter.Command])(implicit system: ActorSystem[_]): Unit = {
 
     import akka.http.scaladsl.server.Directives._
 

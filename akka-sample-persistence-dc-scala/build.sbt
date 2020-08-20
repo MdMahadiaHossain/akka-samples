@@ -3,11 +3,11 @@ name := "akka-sample-replicated-event-sourcing-scala"
 
 scalaVersion := "2.13.3"
 
-val AkkaVersion = "2.6.8+88-90e09549"
+val AkkaVersion = "2.6.8+88-90e09549+20200819-1609"
 val AkkaAddOnsVersion = "1.1.12"
 val AkkaPersistenceCassandraVersion = "1.0.1-3-cdbe0573-20200819-1116"
 val AkkaHttpVersion = "10.2.0"
-val AkkaClusterManagementVersion = "1.0.3"
+val AkkaClusterManagementVersion = "1.0.8"
 
 credentials += Credentials(Path.userHome / ".lightbend" / "commercial.credentials")
 resolvers += "com-mvn" at "https://repo.lightbend.com/commercial-releases/"
@@ -32,5 +32,7 @@ libraryDependencies ++= Seq(
 
 // transitive dependency of akka 2.5x that is brought in by addons but evicted
 dependencyOverrides += "com.typesafe.akka" %% "akka-protobuf" % AkkaVersion
+dependencyOverrides += "com.typesafe.akka" %% "akka-cluster-tools" % AkkaVersion
+dependencyOverrides += "com.typesafe.akka" %% "akka-coordination" % AkkaVersion
 
 licenses := Seq(("CC0", url("http://creativecommons.org/publicdomain/zero/1.0")))
