@@ -13,7 +13,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 public class ThumbsUpCounter extends ReplicatedEventSourcedBehavior<ThumbsUpCounter.Command, ThumbsUpCounter.Event, ThumbsUpCounter.State> {
@@ -21,15 +20,15 @@ public class ThumbsUpCounter extends ReplicatedEventSourcedBehavior<ThumbsUpCoun
     public static Set<ReplicaId> ALL_REPLICAS = Set.of(new ReplicaId("eu-west"), new ReplicaId("eu-central"));
     private final ActorContext<Command> ctx;
 
-    public static Behavior<Command> create(ReplicationId id) {
-        return Behaviors.setup(ctx -> ReplicatedEventSourcing.withSharedJournal(id, ALL_REPLICAS, CassandraReadJournal.Identifier(), replicationContext -> new ThumbsUpCounter(replicationContext, ctx)));
+    private static Behavior<Command> create(ReplicationId id) {
+        return Behaviors.setup(ctx -> ReplicatedEventSourcing.commonJournalConfig(id, ALL_REPLICAS, CassandraReadJournal.Identifier(), replicationContext -> new ThumbsUpCounter(replicationContext, ctx)));
     }
 
     public static ReplicatedEntityProvider<Command> provider() {
-        return ReplicatedEntityProvider.createPerDc(Command.class, "counter", ALL_REPLICAS, ThumbsUpCounter::create);
+        return ReplicatedEntityProvider.createPerDataCenter(Command.class, "counter", ALL_REPLICAS, ThumbsUpCounter::create);
     }
 
-    public ThumbsUpCounter(ReplicationContext replicationContext, ActorContext<Command> ctx) {
+    private ThumbsUpCounter(ReplicationContext replicationContext, ActorContext<Command> ctx) {
         super(replicationContext);
         this.ctx = ctx;
     }
@@ -97,10 +96,6 @@ public class ThumbsUpCounter extends ReplicatedEventSourcedBehavior<ThumbsUpCoun
         public GetUsers(String resourceId, ActorRef<State> replyTo) {
             this.resourceId = resourceId;
             this.replyTo = replyTo;
-        }
-
-        public String getResourceId() {
-            return resourceId;
         }
     }
 

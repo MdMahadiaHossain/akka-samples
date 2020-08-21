@@ -2,9 +2,9 @@ package sample.persistence.multidc
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.cluster.sharding.typed.{ReplicatedEntityProvider, ShardingEnvelope}
+import akka.cluster.sharding.typed.ReplicatedEntityProvider
 import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
-import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, ReplicatedEventSourcing}
+import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, ReplicatedEventSourcing, ReplicationContext}
 import akka.persistence.typed.{ReplicaId, ReplicationId}
 
 object ThumbsUpCounter {
@@ -33,7 +33,7 @@ object ThumbsUpCounter {
   // In this sample one replica per DC
   val Replicas = Set(ReplicaId("eu-west"), ReplicaId("eu-central"))
 
-  val Provider: ReplicatedEntityProvider[Command] = ReplicatedEntityProvider.perDc("counter", Replicas) { replicationId => ThumbsUpCounter(replicationId) }
+  val Provider: ReplicatedEntityProvider[Command] = ReplicatedEntityProvider.perDataCenter("counter", Replicas) { replicationId => ThumbsUpCounter(replicationId) }
 
 
   // we use a shared journal as cassandra typically spans DCs rather than a DB per replica
@@ -41,9 +41,9 @@ object ThumbsUpCounter {
     Behaviors.setup { ctx =>
       ReplicatedEventSourcing.withSharedJournal(replicationId, Replicas, CassandraReadJournal.Identifier) { replicationContext =>
         EventSourcedBehavior[Command, Event, State](
-          replicationId.persistenceId,
-          State(Set.empty),
-          (state, cmd) => cmd match {
+          persistenceId = replicationId.persistenceId,
+          emptyState = State(Set.empty),
+          commandHandler = (state, cmd) => cmd match {
             case GiveThumbsUp(_, userId, replyTo) =>
               Effect.persist(GaveThumbsUp(userId)).thenRun { state2 =>
                 ctx.log.info("Thumbs-up by {}, total count {}", userId, state2.users.size)
@@ -56,8 +56,9 @@ object ThumbsUpCounter {
               replyTo ! state
               Effect.none
           },
-          (state, event) => event match {
-            case GaveThumbsUp(userId) => state.add(userId)
+          eventHandler = (state, event) => event match {
+            case GaveThumbsUp(userId) =>
+              state.add(userId)
           }
         )
       }
